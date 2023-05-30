@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>项目管理</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<h1>项目管理</h1>
+<p>请选择部门：</p>
+<select id="department-select">
+  <option value="">请选择部门</option>
+</select>
+<button id="add-project-btn">添加项目</button>
+<table id="project-table" border="1">
+  <thead>
+  <tr>
+    <th>部门名称</th>
+    <th>项目名称</th>
+    <th>操作</th>
+  </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+<!-- 新建项目弹窗 -->
+<div id="new-project-modal" style="display:none;">
+  <label for="project-name-input">项目名称：</label>
+  <input type="text" id="project-name-input">
+  <button id="save-project-btn">保存</button>
+</div>
+<script>
+  // 获取部门列表并更新下拉框
+  function updateDepartmentSelect() {
+    $.ajax({
+      url: '/get-all-departments',
+      type: 'GET',
+      success: function (res) {
+        let departments = res.departments;
+
+        // 清空下拉列表
+        $('#department-select').empty();
+        $('#department-select').append('<option value="">请选择部门</option>');
+
+        // 填充新数据
+        for (let department of departments) {
+          $('#department-select').append(
+                  `<option value="${department.id}">${department.name}</option>`
+          );
+        }
+      },
+      error: function (err) {
+        console.error('获取部门数据失败', err);
+      },
+    });
+  }
+
+  // 根据部门ID获取项目列表并更新项目表
+  function getProjectsByDeptId(deptId) {
+    if (!deptId) {
+      $('#project-table tbody').empty(); // 当部门未选择时, 清空项目表
+      return;
+    }
+
+    $.ajax({
+      url: '/get-projects-by-depid',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ department_id: deptId }),
+      success: function (res) {
+        let projects = res.projects;
+
+        // 更新项目表
+        $('#project-table tbody').empty();
+        for (let project of projects) {
+          $('#project-table tbody').append(`
+            <tr>
+                <td>${project.department_name}</td>
+                <td>${project.project_name}</td>
+                <td>
+                  <button class="delete-project-btn" data-id="${project.id}">
+                    删除
+                  </button>
+                </td>
+            </tr>
+          `);
+        }
+      },
+      error: function (err) {
+        console.error('获取项目数据失败', err);
+      },
+    });
+  }
+
+  $(document).ready(function () {
+    updateDepartmentSelect(); // 更新部门下拉框
+
+    // 当部门选择发生变化时，更新项目表
+    $('#department-select').on('change', function () {
+      getProjectsByDeptId(this.value);
+    });
+
+    // 点击添加项目按钮，显示弹出窗口
+    $('#add-project-btn').on('click', function () {
+      if ($('#department-select').val() === '') {
+        alert('请先选择一个部门');
+        return;
+      }
+      $('#new-project-modal').fadeIn();
+    });
+
+    // 保存新添加的项目
+    $('#save-project-btn').on('click', function () {
+      const projectName = $('#project-name-input').val();
+      const departmentId = $('#department-select').val();
+      if (!projectName || !departmentId) {
+        alert('请填写项目名称并选择部门');
+        return;
+      }
+      $.ajax({
+        url: '/add-project',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ department_id: departmentId, project_name: projectName }),
+        success: function (res) {
+          $('#project-name-input').val(''); // 清空输入框
+          $('#new-project-modal').fadeOut(); // 关闭弹窗
+          getProjectsByDeptId(departmentId); // 更新项目列表
+        },
+        error: function (err) {
+          console.error('添加项目失败', err);
+        },
+      });
+    });
+
+    // 删除项目
+    $('body').on('click', '.delete-project-btn', function () {
+      const projectId = $(this).data('id');
+      const departmentId = $('#department-select').val(); // 获取当前选中的部门ID
+      $.ajax({
+        url: '/delete-project-by-id',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ project_id: projectId }),
+        success: function (res) {
+          getProjectsByDeptId(departmentId); // 更新项目列表
+        },
+        error: function (err) {
+          console.error('删除项目失败', err);
+        },
+      });
+    });
+  });
+</script>
+</body>
+</html>

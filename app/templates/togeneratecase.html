@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html" xmlns="http://www.w3.org/1999/html">
+<head>
+  <meta charset="UTF-8">
+  <title>测试脚本生成</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<h1>测试脚本生成</h1>
+<!-- 在现有的 <body> 标签内添加以下代码 -->
+<p>选择部门：
+  <select id="select-department">
+    <option value=""> -- 请选择部门 -- </option>
+  </select>
+</p>
+
+<p>选择项目：
+  <select id="select-project">
+    <option value=""> -- 请选择项目 -- </option>
+  </select>
+</p>
+<p>脚本名称：<input type="text" id="script_name"></p>
+<input type="file" id="image_upload">
+<button id="click_btn">点击</button>
+<button id="assert_btn">校验</button>
+<button id="generate_script_btn">生成测试脚本</button>
+<!--<button id="save_btn">保存</button>-->
+<p id="action_prompt" style="color: red;"></p>
+<div id="uploaded_images"></div>
+<table id="scriptList" style="display:none;">
+  <thead>
+  <tr>
+    <th>部门</th>
+    <th>项目</th>
+    <th>脚本名称</th>
+    <th>创建时间</th>
+    <th>运行结果</th>
+    <th>操作</th>
+  </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<script>
+  let step_number = 0;
+  let selected_action = '';
+  // 添加 isImageUploaded 和 isActionPerformed 变量
+  let isImageUploaded = false;
+  let isActionPerformed = false;
+  //------------------------------
+  function submitForm() {
+    // 获取当前时间
+    var currentTime = new Date().toLocaleString();
+
+    axios.post('/generate-test-script', {
+      'script_name': $('#script_name').val(),
+      'department_id': $("#department").val(),
+      'project_id': $("#project").val()
+    })
+            .then((response) => {
+              console.log(response);
+
+              // 隐藏表单
+              $("#scriptForm").hide();
+
+              // 显示脚本列表
+              $("#scriptList").show();
+
+              var newRow = `
+            <tr data-script-id=${response.data.id}>
+                <td>${$("#department :selected").text()}</td>
+                <td>${$("#project :selected").text()}</td>
+                <td>${$('#script_name').val()}</td>
+                <td>${currentTime}</td>
+                <td>未运行</td>
+                <td>
+                    <button onclick="deleteScript(this)">删除</button>
+                    <button onclick="runScript(this)">运行</button>
+                </td>
+            </tr>`;
+
+              $("#scriptList tbody").append(newRow);
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+  }
+
+  function deleteScript(button) {
+    var scriptId = $(button).closest("tr").data("script-id");
+
+    axios.post(`/delete-script/${scriptId}`)
+            .then((response) => {
+              console.log(response);
+              if (response.data.result === "success") {
+                $(button).parents("tr").remove();
+              }
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+  }
+
+  function runScript(button) {
+    var scriptId = $(button).closest("tr").data("script-id");
+
+    axios.post(`/run-script/${scriptId}`)
+            .then((response) => {
+              console.log(response);
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+  }
+
+  //------------------------------
+  function save_image_data(image_name, action_type, step_number, script_name,ftp_path, department_id, project_id) {
+    $.ajax({
+      url: "/save-image-data", // 您的后端接口
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({
+        image_name: image_name,
+        action_type: action_type,
+        step_number: step_number,
+        script_name: script_name,
+        // ftp_path: `/bignoxData/bignoxData/software/qa/Mobile/uitest/${script_name}/${image_name}`, // 添加新字段
+        department_id: department_id,
+        project_id: project_id,
+        ftp_path: ftp_path, // 添加新字段
+      }),
+      success: function (res) {
+        console.log("Image data saved successfully");
+        console.log(res); // 添加这一行以查看响应内容
+      },
+      error: function (err) {
+        console.error("Image data save failed");
+        console.error(err); // 添加这一行以查看错误内容
+      },
+    });
+  }
+  function disableActionButtons() {
+    $("#click_btn").attr("disabled", true);
+    $("#assert_btn").attr("disabled", true);
+  }
+
+  function enableActionButtons() {
+    $("#click_btn").attr("disabled", false);
+    $("#assert_btn").attr("disabled", false);
+  }
+  disableActionButtons(); // 最初禁用按钮，直到上传第一张图片
+  $("#click_btn").on("click", function () {
+    selected_action = 'click';
+    $("#action_prompt").text("已选择点击操作");
+
+    if (step_number > 0) {
+      let imgCaption = `点击第${step_number}步。`;
+      $("#uploaded_images div:last-child p").text(imgCaption);
+    }
+
+    disableActionButtons(); // 选择操作后重新禁用按钮
+    // 修改并添加以下两行代码到 #click_btn 的事件处理程序中
+    const department_id = $('#select-department').val();
+    const project_Id = $('#select-project').val();
+    const imageUrl = $(this).attr("data-url");
+    save_image_data(imgFile.name, selected_action, step_number, $("#script_name").val(), imageUrl,department_id, project_Id);
+    isActionPerformed = true; // 将 isActionPerformed 设置为 true
+    //save_image_data(imgFile.name, selected_action, step_number, $("#script_name").val(), `/uploads${res.image_url}`); // 传递 ftp_path 参数
+  });
+  //新函数
+  $("#image_upload").on("click", function () {
+    this.value = null;
+  });
+  //分割线
+  $("#assert_btn").on("click", function () {
+    selected_action = 'assert';
+    $("#action_prompt").text("已选择校验操作");
+
+    if (step_number > 0) {
+      let imgCaption = `校验第${step_number}步。`;
+      $("#uploaded_images div:last-child p").text(imgCaption);
+    }
+
+    disableActionButtons(); // 选择操作后重新禁用按钮
+    // 修改并添加以下两行代码到 #click_btn 的事件处理程序中
+    const department_id = $('#select-department').val();
+    const project_Id = $('#select-project').val();
+    const imageUrl = $(this).attr("data-url");
+    save_image_data(imgFile.name, selected_action, step_number, $("#script_name").val(), imageUrl, department_id, project_Id);
+    isActionPerformed = true; // 将 isActionPerformed 设置为 true
+    //save_image_data(imgFile.name, selected_action, step_number, $("#script_name").val(), `/uploads${res.image_url}`); // 传递 ftp_path 参数
+  });
+  let imgFile; // 将 imgFile 变量移到外面
+  $("#image_upload").on("change", function () {
+    let fileInput = this;
+    imgFile = fileInput.files[0];
+    let imgName = imgFile.name;
+    let formData = new FormData();
+    formData.append("image", imgFile);
+    formData.append("script_name", $("#script_name").val());
+    formData.append("department_id", $("#select-department").val()); // 新增加这行
+    formData.append("project_id", $("#select-project").val());       // 新增加这行
+    step_number++;
+
+    $.ajax({
+      url: "/upload-image", // 您的后端接口
+      type: "POST",
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (res) {
+        let newImg = document.createElement("img");
+        newImg.src = res.image_url; // 响应中的图片 URL
+        newImg.style.maxWidth = "200px";
+        newImg.alt = imgName;
+
+        let imageCaption = document.createElement("p");
+
+        let imageContainer = document.createElement("div");
+        imageContainer.appendChild(newImg);
+        imageContainer.appendChild(imageCaption);
+        $("#uploaded_images").append(imageContainer);
+
+        enableActionButtons(); // 上传新图片后启用点击和校验按钮
+        $("#click_btn").attr("data-url", res.image_url);
+        $("#assert_btn").attr("data-url", res.image_url);
+        enableActionButtons(); // 添加这一行代码
+        // 在这里设置 isImageUploaded 为 true
+        isImageUploaded = true;
+      },
+      error: function (err) {
+        console.error("图片上传失败", err);
+      }
+    });
+  });
+  $("#generate_script_btn").on("click", function () {
+    if (!isImageUploaded) {
+      alert("未上传任何文件！");
+      return;
+    }
+
+    if (!isActionPerformed) {
+      alert("请先选择当前图片要执行的动作！");
+      return;
+    }
+    // 更新此部分，使用正确的 ID
+    console.log("项目ID: " + $("#select-project").val());
+    console.log("部门ID: " + $("#select-department").val());
+
+    var postData = JSON.stringify({
+      script_name: $("#script_name").val(),
+      department_id: $("#select-department").val(),
+      project_id: $("#select-project").val()
+    });
+
+    // 输出提交的完整数据
+    console.log("发送的JSON: ", postData);
+    $.ajax({
+      url: "/generate-test-script", // 您的后端接口
+      type: "POST",
+      contentType: "application/json",
+      data:postData,
+      // data: JSON.stringify({
+      //   script_name: $("#script_name").val(),
+      //   department_id: $("#department_id").val(),  // 请确保这两行传递了正确的 ID
+      //   project_id: $("#project_id").val(),      // 请确保这两行传递了正确的 ID
+      // }),
+      success: function (res) {
+        alert("测试脚本已生成！");
+      },
+      error: function (err) {
+        alert("生成测试脚本失败");
+        console.error(err)
+      }
+    });
+  });
+  <!-- 在现有的 <script> 标签内添加以下代码 -->
+  $(document).ready(function () {
+
+    // 获取部门信息并填充到下拉框
+    function loadDepartments() {
+      $.get("/get-all-departments", function (data) {
+        var departments = data.departments;
+        $("#select-department").empty();
+        $("#select-department").append("<option value=''> -- 请选择部门 -- </option>")
+        for (var i = 0; i < departments.length; i++) {
+          var option = $("<option>").val(departments[i].id).text(departments[i].name);
+          $("#select-department").append(option);
+        }
+      });
+    }
+
+    loadDepartments();
+
+    // // 当选择部门时更新项目下拉框
+    // $("#select-department").on("change", function () {
+    //   var department_id = $(this).val();
+    //   if (department_id === "") {
+    //     $("#select-project").empty();
+    //     $("#select-project").append("<option value=''> -- 请选择项目 -- </option>")
+    //   } else {
+    //     $.post("/get-projects-by-depid", {
+    //       "department_id": department_id
+    //     }, function (data) {
+    //       var projects = data.projects;
+    //       $("#select-project").empty();
+    //       $("#select-project").append("<option value=''> -- 请选择项目 -- </option>")
+    //       for (var i = 0; i < projects.length; i++) {
+    //         var option = $("<option>").val(projects[i].id).text(projects[i].project_name);
+    //         $("#select-project").append(option);
+    //       }
+    //     });
+    //   }
+    // });
+    $("#select-department, #select-project").on("change", function() {
+      if ($("#select-department").val() && $("#select-project").val()) {
+        $("#script_name").prop("disabled", false);
+      } else {
+        $("#script_name").prop("disabled", true);
+      }
+    });
+    $("#select-department").on("change", function () {
+      var departmentId = $(this).val();
+      if (departmentId) {
+        // 发送请求获取部门对应项目
+        $.get("/get-projects?department_id=" + departmentId, function (data) {
+          var projects = data.projects;
+          $("#select-project").empty();
+          $("#select-project").append("<option value=''> -- 请选择项目 -- </option>");
+          for (var i = 0; i < projects.length; i++) {
+            var option = $("<option>").val(projects[i].id).text(projects[i].name);
+            $("#select-project").append(option);
+          }
+        });
+      } else {
+        $("#select-project").empty();
+        $("#select-project").append("<option value=''> -- 请先选择部门 -- </option>");
+      }
+    });
+  })
+</script>
+</body>
+</html>

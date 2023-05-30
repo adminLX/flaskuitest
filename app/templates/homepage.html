@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>测试脚本生成</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  <!-- 修改后的CSS -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f6f9ff;
+    }
+    .sidebar {
+      width: 200px;
+      height: 100vh;
+      background-color: #333;
+      position: fixed;
+      left: 0;
+      top: 0;
+      overflow: auto;
+      padding-top: 20px;
+    }
+    .menu-item {
+      text-decoration: none;
+      color: #f5f5f5;
+      padding: 12px 20px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      transition: background-color 0.3s;
+    }
+    .menu-item:hover {
+      background-color: #0060AF;
+    }
+    .menu-item i {
+      margin-right: 5px;
+    }
+    .content {
+      display: flex;
+      flex-direction: column;
+      margin-left: 200px;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .page-title {
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #0060AF;
+    }
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <a href="#" class="menu-item" id="home"><i class="fa fa-home"></i> 首页</a>
+  <a href="#" class="menu-item" id="departments"><i class="fa fa-building"></i> 部门管理</a>
+  <a href="#" class="menu-item" id="projects"><i class="fa fa-tasks"></i> 项目管理</a>
+  <a href="#" class="menu-item" id="new-test"><i class="fa fa-plus"></i> 脚本管理</a>
+  <a href="#" class="menu-item" id="new-test1"><i class="fa fa-plus"></i> 报告管理</a>
+<!--  <a href="#" class="menu-item" id="project-management"><i class="fa fa-tasks"></i> 项目管理</a>-->
+</div>
+<div class="content">
+  <h1 class="page-title">自动化测试平台</h1>
+  <div id="content-section">
+    <!-- indexthree.html 将被加载到这里 -->
+  </div>
+</div>
+<!-- 引入现有的JavaScript -->
+<script>
+  // 添加菜单项监听事件
+  $("#new-test").click(function() {
+    $("#content-section").load("/togeneratecase");
+  });
+  $("#departments").click(function() {
+    $("#content-section").load("/departments");
+  });
+  $("#project-management").click(function () {
+    $("#content-section").load("/project_management");
+  });
+  $("#projects").click(function() {
+    $("#content-section").load("/projects");
+  });
+  // $("#home, #departments").click(function() {
+  //   location.reload(); // 重新加载页面以还原到初始状态
+  // });
+
+  // 粘贴您现有的JavaScript代码
+</script>
+</body>
+</html>

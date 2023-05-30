@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <style type="text/css">
+    table.hovertable {
+      font-family: verdana,arial,sans-serif;
+      font-size:11px;
+      color:#333333;
+      border-width: 1px;
+      border-color: #999999;
+      border-collapse: collapse;
+    }
+    table.hovertable th {
+      background-color:#c3dde0;
+      border-width: 1px;
+      padding: 8px;
+      border-style: solid;
+      border-color: #a9c6c9;
+    }
+    table.hovertable tr {
+      background-color:#d4e3e5;
+    }
+    table.hovertable td {
+      border-width: 1px;
+      padding: 8px;
+      border-style: solid;
+      border-color: #a9c6c9;
+    }
+  </style>
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function() {
+    $.ajax({
+      url: '/get-departments',
+      type: 'GET',
+      success: function(res) {
+        let departments = res.departments;
+        for (let department of departments) {
+          $('#department-table tbody').append(`
+                        <tr onmouseover="this.style.backgroundColor='#ffff66';" onmouseout="this.style.backgroundColor='#d4e3e5';">
+                            <td  align="center">${department.id}</td>
+                            <td  align="center">${department.name}</td>
+                        </tr>
+                    `);
+        }
+      },
+      error: function(err) {
+        console.error('获取部门数据失败', err);
+      }
+    });
+  });
+</script>
+<table id="department-table" border="1" class="hovertable" width="85%">
+  <thead>
+  <tr>
+    <th width="25%" align="center">部门 ID</th>
+    <th align="center">部门名称</th>
+  </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+</body>
+</html>

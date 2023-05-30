@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>项目管理</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js">
+    $(document).ready(function() {
+      // 获取部门信息并填充到下拉框
+      function loadDepartmentOptions() {
+        $.get("/get_departments", function(data) {
+          var departments = JSON.parse(data);
+          for (var i = 0; i < departments.length; i++) {
+            var option = $("<option>").val(departments[i].id).text(departments[i].name);
+            $("#select-department").append(option);
+          }
+        });
+      }
+      loadDepartmentOptions();
+
+      // 新建按钮事件
+      $("#new-project").click(function() {
+        var departmentId = $("#select-department").val();
+
+        if (departmentId === "") {
+          alert("请先选择部门");
+          return;
+        }
+
+        $("#project-form").toggle();
+      });
+
+      // 保存项目
+      $("#save-project").click(function() {
+        var projectName = $("#project-name").val();
+        if (projectName.length === 0) {
+          alert('请输入项目名称');
+          return;
+        }
+
+        var departmentId = $("#select-department").val();
+
+        $.post("/save_project", {
+          department_id: departmentId,
+          project_name: projectName
+        }, function(data) {
+          // 清空输入框
+          $("#project-name").val("");
+
+          // 隐藏表单
+          $("#project-form").hide();
+
+          // 重新加载项目列表
+          loadProjects();
+
+        });
+      });
+
+
+      // 获取项目列表并显示
+      function loadProjects() {
+        $("#project-table tbody").empty();
+
+        var departmentId = $("#select-department").val();
+
+        $.get("/get_projects?department_id=" + departmentId, function(data) {
+          var projects = JSON.parse(data);
+          for (var i = 0; i < projects.length; i++) {
+            var newRow = "<tr>" +
+                    "<td>" + projects[i].id + "</td>" +
+                    "<td>" + projects[i].department_id + "</td>" +
+                    "<td>" + projects[i].name + "</td>" +
+                    "<td><button class='delete-project' data-project-id='" + projects[i].id + "'>删除</button></td>" +
+                    "</tr>";
+
+            $("#project-table tbody").append(newRow);
+          }
+        });
+      }
+
+      // 搜索按钮事件
+      $("#search-projects").click(function() {
+        loadProjects();
+      });
+
+      // 删除项目事件
+      $("#project-table").on("click", ".delete-project", function() {
+        var projectId = $(this).data("project-id");
+
+        $.post("/delete_project", {
+          project_id: projectId
+        }, function(data) {
+          // 重新加载项目列表
+          loadProjects();
+        });
+      });
+    });
+
+  </script>
+</head>
+<body>
+
+<h1>项目管理</h1>
+
+<label>选择部门：
+  <select id="select-department">
+    <option value="">请先选择部门</option>
+  </select>
+</label>
+<button id="search-projects">搜索</button>
+<br>
+<button id="new-project">新建项目</button>
+<br>
+
+<table id="project-table" border="1">
+  <thead>
+  <tr>
+    <th>项目 ID</th>
+    <th>部门 ID</th>
+    <th>项目名称</th>
+    <th>操作</th>
+  </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<div id="project-form" style="display:none;">
+  <h3>新建项目</h3>
+  <input type="text" id="project-name" placeholder="项目名称">
+  <button id="save-project">保存</button>
+</div>
+
+</body>
+</html>
